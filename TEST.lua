@@ -41,7 +41,7 @@ local TabFun = Window:CreateTab("Fun", 4483362458)
 local TabCopy = Window:CreateTab("Copy Aura", 4483362458)
 local TabMusic = Window:CreateTab("Aura Music", 4483362458)
 
--- Reset and Rebuild Auras
+-- Functions
 local function ResetAuras()
     for _, toggle in pairs(AuraToggles) do
         if toggle and toggle.Set then toggle:Set(false) end
@@ -101,7 +101,7 @@ RebuildAuraList()
 Rolled.ChildAdded:Connect(RebuildAuraList)
 Rolled.ChildRemoved:Connect(RebuildAuraList)
 
--- Copy Aura
+-- Copy Aura Tab
 TabCopy:CreateParagraph({Title = "Copy Aura Info", Content = "Type a player's name to copy their aura or hold for 2 seconds"})
 local AuraStatus = TabCopy:CreateLabel("Last Copied Aura: "..LastCopiedAura)
 
@@ -132,31 +132,31 @@ TabCopy:CreateInput({
     end
 })
 
--- Proximity Prompt Copy Aura Button
-TabCopy:CreateButton({Name="Enable Proximity Aura Copy", Callback=function()
+-- Button to give all players ProximityPrompt
+TabCopy:CreateButton({Name="Give ProximityPrompt to All", Callback=function()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
-            local char = player.Character or player.CharacterAdded:Wait()
-            local prompt = Instance.new("ProximityPrompt")
-            prompt.ActionText = "Hold to Copy Aura"
-            prompt.ObjectText = player.Name
-            prompt.MaxActivationDistance = 10
-            prompt.HoldDuration = 2
-            prompt.Parent = char:FindFirstChild("HumanoidRootPart")
-
-            prompt.Triggered:Connect(function()
-                local equipped = player:FindFirstChild("Equipped")
-                if equipped and equipped:FindFirstChild("Aura") then
-                    local auraValue = equipped.Aura.Value
-                    EquippedAura.Value = auraValue
-                    LastCopiedAura = auraValue
-                    AuraStatus:Set("Last Copied Aura: "..LastCopiedAura)
-                    Rayfield:Notify({Title="Copied via Proximity", Content="Aura copied: "..auraValue, Duration=2})
-                    for name, toggle in pairs(AuraToggles) do toggle:Set(name==auraValue) end
-                end
-            end)
-
-            task.delay(2, function() prompt:Destroy() end)
+            local part = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if part then
+                local prompt = Instance.new("ProximityPrompt")
+                prompt.ActionText = "Hold to copy aura"
+                prompt.HoldDuration = 2
+                prompt.Parent = part
+                prompt.Triggered:Connect(function(plr)
+                    if plr == LocalPlayer then
+                        local equipped = player:FindFirstChild("Equipped")
+                        if equipped and equipped:FindFirstChild("Aura") then
+                            local auraValue = equipped.Aura.Value
+                            EquippedAura.Value = auraValue
+                            LastCopiedAura = auraValue
+                            AuraStatus:Set("Last Copied Aura: "..LastCopiedAura)
+                            Rayfield:Notify({Title="Copied", Content="Aura copied: "..auraValue, Duration=2})
+                            for name, toggle in pairs(AuraToggles) do toggle:Set(name==auraValue) end
+                        end
+                    end
+                end)
+                game:GetService("Debris"):AddItem(prompt, 2)
+            end
         end
     end
 end})
