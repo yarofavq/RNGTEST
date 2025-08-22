@@ -101,7 +101,7 @@ RebuildAuraList()
 Rolled.ChildAdded:Connect(RebuildAuraList)
 Rolled.ChildRemoved:Connect(RebuildAuraList)
 
--- Copy Aura Tab
+-- Copy Aura
 TabCopy:CreateParagraph({Title = "Copy Aura Info", Content = "Type a player's name to copy their aura or hold for 2 seconds"})
 local AuraStatus = TabCopy:CreateLabel("Last Copied Aura: "..LastCopiedAura)
 
@@ -132,31 +132,107 @@ TabCopy:CreateInput({
     end
 })
 
--- Button to give all players ProximityPrompt
-TabCopy:CreateButton({Name="Give ProximityPrompt to All", Callback=function()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local part = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if part then
-                local prompt = Instance.new("ProximityPrompt")
-                prompt.ActionText = "Hold to copy aura"
-                prompt.HoldDuration = 2
-                prompt.Parent = part
-                prompt.Triggered:Connect(function(plr)
-                    if plr == LocalPlayer then
-                        local equipped = player:FindFirstChild("Equipped")
-                        if equipped and equipped:FindFirstChild("Aura") then
-                            local auraValue = equipped.Aura.Value
-                            EquippedAura.Value = auraValue
-                            LastCopiedAura = auraValue
-                            AuraStatus:Set("Last Copied Aura: "..LastCopiedAura)
-                            Rayfield:Notify({Title="Copied", Content="Aura copied: "..auraValue, Duration=2})
-                            for name, toggle in pairs(AuraToggles) do toggle:Set(name==auraValue) end
-                        end
+-- Game Tab Functions
+TabGame:CreateButton({Name="Телепорт к Charm 1", Callback=function()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    char:SetPrimaryPartCFrame(CFrame.new(93.9420929,206.313431,-362.343933,1,0,0,0,1,0,0,0,1))
+    Rayfield:Notify({Title="Teleported", Content="Телепорт к Charm 1", Duration=2})
+end})
+
+TabGame:CreateButton({Name="Телепорт к Charm 2", Callback=function()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    char:SetPrimaryPartCFrame(CFrame.new(-191.257889,206.213348,-352.611938,1,0,0,0,1,0,0,0,1))
+    Rayfield:Notify({Title="Teleported", Content="Телепорт к Charm 2", Duration=2})
+end})
+
+TabGame:CreateToggle({Name="Auto Roll", CurrentValue=false, Callback=function(state)
+    AutoRollEnabled = state
+    Rayfield:Notify({Title="Auto Roll", Content=(state and "Enabled" or "Disabled"), Duration=2})
+    spawn(function()
+        while AutoRollEnabled do
+            local args={true}
+            game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("MainGui"):WaitForChild("Rolling"):WaitForChild("Rolling"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+end})
+
+-- Tools
+TabTools:CreateButton({Name="Load Infinite Yield", Callback=function()
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()
+    Rayfield:Notify({Title="Loaded", Content="Infinite Yield executed.", Duration=2})
+end})
+TabTools:CreateButton({Name="Copy Place ID", Callback=function()
+    setclipboard(tostring(game.PlaceId))
+    Rayfield:Notify({Title="Copied", Content="Place ID copied.", Duration=2})
+end})
+TabTools:CreateButton({Name="Copy Your User ID", Callback=function()
+    setclipboard(tostring(LocalPlayer.UserId))
+    Rayfield:Notify({Title="Copied", Content="User ID copied.", Duration=2})
+end})
+
+-- Fun
+TabFun:CreateToggle({Name="Rainbow Body", CurrentValue=false, Callback=function(state)
+    spawn(function()
+        while state do
+            local char=LocalPlayer.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") and part.Name~="HumanoidRootPart" then
+                        part.Color = Color3.fromHSV(tick()%5/5,1,1)
                     end
-                end)
-                game:GetService("Debris"):AddItem(prompt, 2)
+                end
+            end
+            task.wait(0.1)
+        end
+    end)
+end})
+
+TabFun:CreateToggle({Name="ESP (Highlight Players)", CurrentValue=false, Callback=function(state)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player~=LocalPlayer then
+            if state then
+                local highlight=Instance.new("Highlight")
+                highlight.Name="ESPHighlight"
+                highlight.FillColor=Color3.new(1,0,0)
+                highlight.OutlineColor=Color3.new(1,1,1)
+                highlight.Parent=player.Character or player.CharacterAdded:Wait()
+            else
+                if player.Character and player.Character:FindFirstChild("ESPHighlight") then
+                    player.Character.ESPHighlight:Destroy()
+                end
             end
         end
+    end
+end})
+
+-- Aura Music
+local musicList={
+    {Name="BRR BRR PATAPIM", ID="83630219580953"},
+    {Name="Brainz Funk", ID="70586618643318"},
+    {Name="City Lightz Pr Funk", ID="81068115852250"},
+    {Name="Funk Diamante Enigma", ID="113208690604605"},
+    {Name="Goth Funk", ID="140704128008979"},
+    {Name="Nadie Sale de Aqui Funk", ID="95480320349659"},
+    {Name="Atmospherika Funk", ID="136295506080844"},
+    {Name="Bankai Funk", ID="129078347843179"},
+    {Name="Above Phonk", ID="89824897586105"}
+}
+
+TabMusic:CreateParagraph({Title="Note", Content="Some tracks may not work due to copyright restrictions"})
+
+for _, track in ipairs(musicList) do
+    TabMusic:CreateButton({Name=track.Name, Callback=function()
+        AuraSound.SoundId="rbxassetid://"..track.ID
+        AuraSound:Play()
+        EquippedAura.Value=""
+    end})
+end
+
+TabMusic:CreateInput({Name="Custom Sound ID", PlaceholderText="Enter Roblox Sound ID", RemoveTextAfterFocusLost=false, Callback=function(id)
+    if tonumber(id) then
+        AuraSound.SoundId="rbxassetid://"..id
+        AuraSound:Play()
+        EquippedAura.Value=""
     end
 end})
